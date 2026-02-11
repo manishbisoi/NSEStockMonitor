@@ -174,7 +174,7 @@ The application automatically respects NSE trading hours:
 ### Using Gunicorn
 ```bash
 pip install gunicorn eventlet
-gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:5000 app:app
+gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT app:app
 ```
 
 ### Using Docker
