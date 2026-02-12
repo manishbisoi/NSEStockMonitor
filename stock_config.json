@@ -1,22 +1,8 @@
 {
-  "RELIANCE": {
-    "symbol": "RELIANCE",
-    "upper_limit": 2500.0,
-    "lower_limit": 2400.0,
-    "last_alert_upper": false,
-    "last_alert_lower": false
-  },
   "TCS": {
     "symbol": "TCS",
     "upper_limit": 3700.0,
     "lower_limit": 3500.0,
-    "last_alert_upper": false,
-    "last_alert_lower": false
-  },
-  "INFY": {
-    "symbol": "INFY",
-    "upper_limit": 1600.0,
-    "lower_limit": 1500.0,
     "last_alert_upper": false,
     "last_alert_lower": false
   },

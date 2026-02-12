@@ -1,6 +1,7 @@
 import requests
 import json
 import time
+import random
 import datetime
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, asdict
@@ -31,7 +32,32 @@ class NSEStockMonitor:
             'Accept': 'application/json',
             'Accept-Language': 'en-US,en;q=0.9',
         })
+        # NSE blocks many automated clients. We'll prime the session with
+        # a visit to the homepage to obtain required cookies and headers.
+        self._primed = False
         self.load_config()
+
+    def _prime_session(self, force: bool = False):
+        """Hit the NSE homepage once to obtain cookies and mimic a browser.
+
+        Call this before calling API endpoints. Setting force=True re-primes.
+        """
+        if self._primed and not force:
+            return
+
+        try:
+            homepage = "https://www.nseindia.com"
+            # use a short timeout so the app doesn't hang on startup
+            resp = self.session.get(homepage, timeout=5)
+            # Update Referer to homepage for subsequent API calls
+            self.session.headers.update({'Referer': homepage})
+            # mark primed if we got any response (200/301/302/403 etc.)
+            self._primed = True
+            # small sleep to mimic browser behaviour
+            time.sleep(random.uniform(0.2, 0.6))
+        except Exception:
+            # don't raise - we'll retry when making the API call
+            self._primed = False
     
     def load_config(self):
         if os.path.exists(self.config_file):
@@ -97,17 +123,40 @@ class NSEStockMonitor:
     
     def get_stock_price(self, symbol: str) -> Optional[float]:
         try:
+            # Ensure session is primed (cookies + headers)
+            self._prime_session()
+
             url = f"{self.base_url}?symbol={symbol}"
-            response = self.session.get(url, timeout=10)
-            
-            if response.status_code == 200:
-                data = response.json()
-                if 'priceInfo' in data and 'lastPrice' in data['priceInfo']:
-                    return float(data['priceInfo']['lastPrice'])
-            elif response.status_code == 404:
-                print(f"Stock {symbol} not found on NSE")
-            else:
-                print(f"Error fetching data for {symbol}: HTTP {response.status_code}")
+
+            # retry loop with exponential backoff for transient 403/5xx
+            for attempt in range(1, 4):
+                response = self.session.get(url, timeout=10)
+
+                if response.status_code == 200:
+                    try:
+                        data = response.json()
+                        if 'priceInfo' in data and 'lastPrice' in data['priceInfo']:
+                            # small throttle between requests
+                            time.sleep(random.uniform(0.3, 1.0))
+                            return float(data['priceInfo']['lastPrice'])
+                    except ValueError:
+                        print(f"Invalid JSON for {symbol}")
+                        return None
+
+                if response.status_code == 404:
+                    print(f"Stock {symbol} not found on NSE")
+                    return None
+
+                if response.status_code == 403:
+                    # server likely blocked our client/IP; re-prime cookies and retry
+                    print(f"Received 403 for {symbol}, re-priming session (attempt {attempt})")
+                    self._prime_session(force=True)
+                else:
+                    print(f"Error fetching data for {symbol}: HTTP {response.status_code}")
+
+                # backoff before next attempt
+                sleep_seconds = (2 ** attempt) * 0.5 + random.uniform(0, 0.5)
+                time.sleep(sleep_seconds)
                 
         except Exception as e:
             print(f"Error fetching price for {symbol}: {e}")
