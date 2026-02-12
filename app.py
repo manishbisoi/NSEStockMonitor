@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-change-in-production'
+app.secret_key = os.environ.get('SECRET_KEY', 'b3c4f17552b399a339b71fef5c5af905')
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 @dataclass
