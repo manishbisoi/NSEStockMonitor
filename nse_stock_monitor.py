@@ -58,7 +58,7 @@ class NSEStockMonitor:
         except Exception:
             # don't raise - we'll retry when making the API call
             self._primed = False
-    
+
     def load_config(self):
         if os.path.exists(self.config_file):
             try:
@@ -70,7 +70,7 @@ class NSEStockMonitor:
             except Exception as e:
                 print(f"Error loading config: {e}")
                 self.stocks = {}
-    
+
     def save_config(self):
         config = {}
         for symbol, threshold in self.stocks.items():
@@ -79,7 +79,7 @@ class NSEStockMonitor:
         with open(self.config_file, 'w') as f:
             json.dump(config, f, indent=2)
         print(f"Configuration saved to {self.config_file}")
-    
+
     def add_stock(self, symbol: str, upper_limit: Optional[float] = None, lower_limit: Optional[float] = None):
         symbol = symbol.upper().strip()
         if not symbol:
@@ -94,7 +94,7 @@ class NSEStockMonitor:
         self.save_config()
         print(f"Added {symbol} to monitoring")
         return True
-    
+
     def remove_stock(self, symbol: str):
         symbol = symbol.upper().strip()
         if symbol in self.stocks:
@@ -105,7 +105,7 @@ class NSEStockMonitor:
         else:
             print(f"{symbol} not found in monitoring list")
             return False
-    
+
     def update_thresholds(self, symbol: str, upper_limit: Optional[float] = None, lower_limit: Optional[float] = None):
         symbol = symbol.upper().strip()
         if symbol not in self.stocks:
@@ -120,7 +120,7 @@ class NSEStockMonitor:
         
         self.save_config()
         print(f"Updated thresholds for {symbol}")
-    
+
     def get_stock_price(self, symbol: str) -> Optional[float]:
         try:
             # Ensure session is primed (cookies + headers)
@@ -157,12 +157,11 @@ class NSEStockMonitor:
                 # backoff before next attempt
                 sleep_seconds = (2 ** attempt) * 0.5 + random.uniform(0, 0.5)
                 time.sleep(sleep_seconds)
-                
         except Exception as e:
             print(f"Error fetching price for {symbol}: {e}")
         
         return None
-    
+
     def check_alerts(self, symbol: str, current_price: float):
         if symbol not in self.stocks:
             return
